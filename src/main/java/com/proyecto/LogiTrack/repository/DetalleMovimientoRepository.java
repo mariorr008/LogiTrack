@@ -10,4 +10,7 @@ public interface DetalleMovimientoRepository extends JpaRepository<DetalleMovimi
     List<DetalleMovimiento> findByMovimientoId(Integer movimientoId);
 
     List<DetalleMovimiento> findByProductoId(Integer productoId);
+
+    boolean existsByProductoId(Integer productoId);
+
 }

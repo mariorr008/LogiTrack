@@ -13,4 +13,9 @@ public interface MovimientoInventarioRepository extends JpaRepository<Movimiento
     List<MovimientoInventario> findByTipoMovimiento(
             TipoMovimiento tipoMovimiento
     );
+
+    boolean existsByBodegaOrigenId(Integer bodegaId);
+
+    boolean existsByBodegaDestinoId(Integer bodegaId);
+
 }

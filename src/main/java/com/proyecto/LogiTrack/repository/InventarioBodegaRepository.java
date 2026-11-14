@@ -2,6 +2,8 @@ package com.proyecto.LogiTrack.repository;
 
 import com.proyecto.LogiTrack.model.InventarioBodega;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,4 +25,13 @@ public interface InventarioBodegaRepository extends JpaRepository<InventarioBode
           Optional permite manejar ambos escenarios: que encuentre el
           registro o que no encuentre ninguno.
      */
+
+    boolean existsByProductoId(Integer productoId);
+
+    boolean existsByBodegaId(Integer bodegaId);
+
+    @Query("SELECT COALESCE(SUM(i.stock), 0) FROM InventarioBodega i WHERE i.bodega.id = :bodegaId")
+    Long sumarStockPorBodega(@Param("bodegaId") Integer bodegaId);
+
+
 }
