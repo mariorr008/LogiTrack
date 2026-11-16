@@ -1,15 +1,16 @@
+
 package com.proyecto.LogiTrack.service.impl;
 
 import com.proyecto.LogiTrack.dto.request.CategoriaProductoDtoRequest;
 import com.proyecto.LogiTrack.dto.response.CategoriaProductoDtoResponse;
+import com.proyecto.LogiTrack.exception.BusinessRuleException;
+import com.proyecto.LogiTrack.exception.ResourceNotFoundException;
 import com.proyecto.LogiTrack.mapper.CategoriaProductoMapper;
 import com.proyecto.LogiTrack.model.CategoriaProducto;
 import com.proyecto.LogiTrack.repository.CategoriaProductoRepository;
 import com.proyecto.LogiTrack.repository.ProductoRepository;
 import com.proyecto.LogiTrack.service.CategoriaProductoService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +29,9 @@ public class CategoriaProductoServiceImpl implements CategoriaProductoService {
     public CategoriaProductoDtoResponse guardar(CategoriaProductoDtoRequest dto) {
 
         if (categoriaRepository.existsByNombre(dto.nombre())) {
-            throw new RuntimeException("Ya existe una categoría con ese nombre");
+            throw new BusinessRuleException(
+                    "Ya existe una categoría con ese nombre"
+            );
         }
 
         CategoriaProducto categoria = categoriaMapper.dtoToEntity(dto);
@@ -45,10 +48,14 @@ public class CategoriaProductoServiceImpl implements CategoriaProductoService {
     ) {
 
         CategoriaProducto categoria = categoriaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la categoría con ID: " + id
+                ));
 
         if (categoriaRepository.existsByNombreAndIdNot(dto.nombre(), id)) {
-            throw new RuntimeException("Ya existe otra categoría con ese nombre");
+            throw new BusinessRuleException(
+                    "Ya existe otra categoría con ese nombre"
+            );
         }
 
         categoriaMapper.updateEntityFromDto(categoria, dto);
@@ -62,10 +69,12 @@ public class CategoriaProductoServiceImpl implements CategoriaProductoService {
     public void eliminar(Integer id) {
 
         CategoriaProducto categoria = categoriaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la categoría con ID: " + id
+                ));
 
         if (productoRepository.existsByCategoriaId(id)) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "No se puede eliminar la categoría porque tiene productos asociados"
             );
         }
@@ -88,7 +97,9 @@ public class CategoriaProductoServiceImpl implements CategoriaProductoService {
     public CategoriaProductoDtoResponse buscarId(Integer id) {
 
         CategoriaProducto categoria = categoriaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la categoría con ID: " + id
+                ));
 
         return categoriaMapper.entityToDto(categoria);
     }

@@ -1,23 +1,20 @@
+
 package com.proyecto.LogiTrack.service.impl;
 
 import com.proyecto.LogiTrack.dto.request.InventarioBodegaDtoRequest;
 import com.proyecto.LogiTrack.dto.response.InventarioBodegaDtoResponse;
-
+import com.proyecto.LogiTrack.exception.BusinessRuleException;
+import com.proyecto.LogiTrack.exception.ResourceNotFoundException;
 import com.proyecto.LogiTrack.mapper.InventarioBodegaMapper;
-
 import com.proyecto.LogiTrack.model.Bodega;
 import com.proyecto.LogiTrack.model.Producto;
 import com.proyecto.LogiTrack.model.InventarioBodega;
 import com.proyecto.LogiTrack.model.EstadoInventario;
-
 import com.proyecto.LogiTrack.repository.BodegaRepository;
 import com.proyecto.LogiTrack.repository.ProductoRepository;
 import com.proyecto.LogiTrack.repository.InventarioBodegaRepository;
-
 import com.proyecto.LogiTrack.service.InventarioBodegaService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,14 +34,18 @@ public class InventarioBodegaServiceImpl implements InventarioBodegaService {
     public InventarioBodegaDtoResponse guardar(InventarioBodegaDtoRequest dto) {
 
         Bodega bodega = bodegaRepository.findById(dto.bodegaId())
-                .orElseThrow(() -> new RuntimeException("Bodega no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la bodega con ID: " + dto.bodegaId()
+                ));
 
         Producto producto = productoRepository.findById(dto.productoId())
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró el producto con ID: " + dto.productoId()
+                ));
 
         if (inventarioRepository.findByBodegaIdAndProductoId(
                 dto.bodegaId(), dto.productoId()).isPresent()) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "El producto ya tiene un registro de inventario en esta bodega"
             );
         }
@@ -52,7 +53,7 @@ public class InventarioBodegaServiceImpl implements InventarioBodegaService {
         Long stockActual = inventarioRepository.sumarStockPorBodega(dto.bodegaId());
 
         if (stockActual + dto.stock() > bodega.getCapacidad()) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "La cantidad supera la capacidad disponible de la bodega"
             );
         }
@@ -62,7 +63,6 @@ public class InventarioBodegaServiceImpl implements InventarioBodegaService {
         inventario.setBodega(bodega);
         inventario.setProducto(producto);
         inventario.setStock(dto.stock());
-
         inventario.setEstado(EstadoInventario.ACTIVO);
 
         InventarioBodega guardado = inventarioRepository.save(inventario);
@@ -85,7 +85,9 @@ public class InventarioBodegaServiceImpl implements InventarioBodegaService {
     public InventarioBodegaDtoResponse buscarId(Integer id) {
 
         InventarioBodega inventario = inventarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Inventario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró el inventario con ID: " + id
+                ));
 
         return inventarioMapper.entityToDto(inventario);
     }
@@ -95,7 +97,9 @@ public class InventarioBodegaServiceImpl implements InventarioBodegaService {
     public List<InventarioBodegaDtoResponse> listarPorBodega(Integer bodegaId) {
 
         if (!bodegaRepository.existsById(bodegaId)) {
-            throw new RuntimeException("Bodega no encontrada");
+            throw new ResourceNotFoundException(
+                    "No se encontró la bodega con ID: " + bodegaId
+            );
         }
 
         return inventarioRepository.findByBodegaId(bodegaId)
@@ -109,7 +113,9 @@ public class InventarioBodegaServiceImpl implements InventarioBodegaService {
     public List<InventarioBodegaDtoResponse> listarPorProducto(Integer productoId) {
 
         if (!productoRepository.existsById(productoId)) {
-            throw new RuntimeException("Producto no encontrado");
+            throw new ResourceNotFoundException(
+                    "No se encontró el producto con ID: " + productoId
+            );
         }
 
         return inventarioRepository.findByProductoId(productoId)

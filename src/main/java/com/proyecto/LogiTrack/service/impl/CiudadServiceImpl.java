@@ -1,7 +1,10 @@
+
 package com.proyecto.LogiTrack.service.impl;
 
 import com.proyecto.LogiTrack.dto.request.CiudadDtoRequest;
 import com.proyecto.LogiTrack.dto.response.CiudadDtoResponse;
+import com.proyecto.LogiTrack.exception.BusinessRuleException;
+import com.proyecto.LogiTrack.exception.ResourceNotFoundException;
 import com.proyecto.LogiTrack.mapper.CiudadMapper;
 import com.proyecto.LogiTrack.model.Ciudad;
 import com.proyecto.LogiTrack.repository.BodegaRepository;
@@ -26,7 +29,9 @@ public class CiudadServiceImpl implements CiudadService {
     public CiudadDtoResponse guardar(CiudadDtoRequest dto) {
 
         if (ciudadRepository.existsByNombre(dto.nombre())) {
-            throw new RuntimeException("La ciudad ya está registrada");
+            throw new BusinessRuleException(
+                    "La ciudad ya está registrada"
+            );
         }
 
         Ciudad ciudad = ciudadMapper.dtoToEntity(dto);
@@ -38,10 +43,14 @@ public class CiudadServiceImpl implements CiudadService {
     public CiudadDtoResponse actualizar(CiudadDtoRequest dto, Integer id) {
 
         Ciudad ciudad = ciudadRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ciudad no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la ciudad con ID: " + id
+                ));
 
         if (ciudadRepository.existsByNombreAndIdNot(dto.nombre(), id)) {
-            throw new RuntimeException("Ya existe otra ciudad con ese nombre");
+            throw new BusinessRuleException(
+                    "Ya existe otra ciudad con ese nombre"
+            );
         }
 
         ciudadMapper.updateEntityFromDto(ciudad, dto);
@@ -53,10 +62,12 @@ public class CiudadServiceImpl implements CiudadService {
     public void eliminar(Integer id) {
 
         Ciudad ciudad = ciudadRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ciudad no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la ciudad con ID: " + id
+                ));
 
         if (bodegaRepository.existsByCiudadId(id)) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "No se puede eliminar una ciudad que tiene bodegas asociadas"
             );
         }
@@ -79,7 +90,9 @@ public class CiudadServiceImpl implements CiudadService {
     public CiudadDtoResponse buscarId(Integer id) {
 
         Ciudad ciudad = ciudadRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ciudad no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la ciudad con ID: " + id
+                ));
 
         return ciudadMapper.entityToDto(ciudad);
     }

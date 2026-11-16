@@ -3,13 +3,15 @@ package com.proyecto.LogiTrack.service.impl;
 
 import com.proyecto.LogiTrack.dto.request.MovimientoInventarioDtoRequest;
 import com.proyecto.LogiTrack.dto.response.MovimientoInventarioDtoResponse;
+import com.proyecto.LogiTrack.exception.BusinessRuleException;
+import com.proyecto.LogiTrack.exception.ResourceNotFoundException;
 import com.proyecto.LogiTrack.mapper.MovimientoInventarioMapper;
 import com.proyecto.LogiTrack.model.*;
 import com.proyecto.LogiTrack.repository.*;
 import com.proyecto.LogiTrack.service.MovimientoInventarioService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,6 +21,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class MovimientoInventarioServiceImpl
         implements MovimientoInventarioService {
 
@@ -31,7 +34,6 @@ public class MovimientoInventarioServiceImpl
     private final MovimientoInventarioMapper mapper;
 
     @Override
-    @Transactional
     public MovimientoInventarioDtoResponse registrar(
             MovimientoInventarioDtoRequest dto) {
 
@@ -40,7 +42,10 @@ public class MovimientoInventarioServiceImpl
         Persona responsable = personaRepository.findById(
                 dto.getUsuarioResponsableId()
         ).orElseThrow(() ->
-                new IllegalArgumentException("El usuario responsable no existe"));
+                new ResourceNotFoundException(
+                        "No se encontró el usuario responsable con ID: "
+                                + dto.getUsuarioResponsableId()
+                ));
 
         MovimientoInventario movimiento = new MovimientoInventario();
         movimiento.setFecha(LocalDateTime.now());
@@ -88,7 +93,7 @@ public class MovimientoInventarioServiceImpl
                                 origen.getId(), producto.getId()
                         )
                         .orElseThrow(() ->
-                                new IllegalArgumentException(
+                                new BusinessRuleException(
                                         "El producto no existe en la bodega de origen"
                                 ));
 
@@ -108,7 +113,7 @@ public class MovimientoInventarioServiceImpl
             destino = buscarBodega(dto.getBodegaDestinoId());
 
             if (origen.getId().equals(destino.getId())) {
-                throw new IllegalArgumentException(
+                throw new BusinessRuleException(
                         "La bodega de origen y destino deben ser diferentes"
                 );
             }
@@ -124,7 +129,7 @@ public class MovimientoInventarioServiceImpl
                                 origen.getId(), producto.getId()
                         )
                         .orElseThrow(() ->
-                                new IllegalArgumentException(
+                                new BusinessRuleException(
                                         "El producto no existe en la bodega de origen"
                                 ));
 
@@ -143,7 +148,7 @@ public class MovimientoInventarioServiceImpl
             movimiento.setBodegaDestino(destino);
 
         } else {
-            throw new IllegalArgumentException("Tipo de movimiento inválido");
+            throw new BusinessRuleException("Tipo de movimiento inválido");
         }
 
         movimiento = movimientoRepository.save(movimiento);
@@ -186,7 +191,10 @@ public class MovimientoInventarioServiceImpl
                         .findByBodegaIdAndProductoId(
                                 origen.getId(), producto.getId()
                         )
-                        .orElseThrow();
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "No se encontró el inventario del producto en la bodega de origen"
+                                ));
 
                 inventarioOrigen.setStock(
                         inventarioOrigen.getStock() - detalleDto.getCantidad()
@@ -222,7 +230,7 @@ public class MovimientoInventarioServiceImpl
     private void validarDetalles(MovimientoInventarioDtoRequest dto) {
 
         if (dto.getDetalles() == null || dto.getDetalles().isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new BusinessRuleException(
                     "El movimiento debe contener al menos un producto"
             );
         }
@@ -234,13 +242,13 @@ public class MovimientoInventarioServiceImpl
             if (detalle.getProductoId() == null
                     || detalle.getCantidad() == null
                     || detalle.getCantidad() <= 0) {
-                throw new IllegalArgumentException(
+                throw new BusinessRuleException(
                         "Los productos y cantidades deben ser válidos"
                 );
             }
 
             if (!productos.add(detalle.getProductoId())) {
-                throw new IllegalArgumentException(
+                throw new BusinessRuleException(
                         "No se puede repetir un producto en el mismo movimiento"
                 );
             }
@@ -251,7 +259,7 @@ public class MovimientoInventarioServiceImpl
 
         if (dto.getBodegaOrigenId() != null
                 || dto.getBodegaDestinoId() == null) {
-            throw new IllegalArgumentException(
+            throw new BusinessRuleException(
                     "Una entrada requiere únicamente una bodega destino"
             );
         }
@@ -261,7 +269,7 @@ public class MovimientoInventarioServiceImpl
 
         if (dto.getBodegaOrigenId() == null
                 || dto.getBodegaDestinoId() != null) {
-            throw new IllegalArgumentException(
+            throw new BusinessRuleException(
                     "Una salida requiere únicamente una bodega origen"
             );
         }
@@ -271,7 +279,7 @@ public class MovimientoInventarioServiceImpl
 
         if (dto.getBodegaOrigenId() == null
                 || dto.getBodegaDestinoId() == null) {
-            throw new IllegalArgumentException(
+            throw new BusinessRuleException(
                     "Una transferencia requiere bodega origen y destino"
             );
         }
@@ -281,14 +289,18 @@ public class MovimientoInventarioServiceImpl
 
         return bodegaRepository.findById(id)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("La bodega no existe"));
+                        new ResourceNotFoundException(
+                                "No se encontró la bodega con ID: " + id
+                        ));
     }
 
     private Producto buscarProducto(Integer id) {
 
         return productoRepository.findById(id)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("El producto no existe"));
+                        new ResourceNotFoundException(
+                                "No se encontró el producto con ID: " + id
+                        ));
     }
 
     private InventarioBodega obtenerInventarioDestino(
@@ -311,7 +323,7 @@ public class MovimientoInventarioServiceImpl
     private void validarInventarioActivo(InventarioBodega inventario) {
 
         if (inventario.getEstado() == EstadoInventario.INACTIVO) {
-            throw new IllegalStateException(
+            throw new BusinessRuleException(
                     "No se pueden realizar movimientos sobre inventarios inactivos"
             );
         }
@@ -321,7 +333,7 @@ public class MovimientoInventarioServiceImpl
             InventarioBodega inventario, Integer cantidad) {
 
         if (inventario.getStock() < cantidad) {
-            throw new IllegalStateException(
+            throw new BusinessRuleException(
                     "Stock insuficiente para realizar el movimiento"
             );
         }
@@ -339,13 +351,14 @@ public class MovimientoInventarioServiceImpl
                 .sum();
 
         if (stockActual + cantidadEntrante > bodega.getCapacidad()) {
-            throw new IllegalStateException(
+            throw new BusinessRuleException(
                     "La capacidad de la bodega será superada"
             );
         }
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<MovimientoInventarioDtoResponse> listar() {
 
         return movimientoRepository.findAll()
@@ -358,11 +371,14 @@ public class MovimientoInventarioServiceImpl
     }
 
     @Override
+    @Transactional(readOnly = true)
     public MovimientoInventarioDtoResponse buscarId(Integer id) {
 
         MovimientoInventario movimiento = movimientoRepository.findById(id)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("El movimiento no existe"));
+                        new ResourceNotFoundException(
+                                "No se encontró el movimiento con ID: " + id
+                        ));
 
         return mapper.entityToDto(
                 movimiento,
@@ -371,8 +387,15 @@ public class MovimientoInventarioServiceImpl
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<MovimientoInventarioDtoResponse> listarPorUsuario(
             Integer usuarioId) {
+
+        if (!personaRepository.existsById(usuarioId)) {
+            throw new ResourceNotFoundException(
+                    "No se encontró la persona con ID: " + usuarioId
+            );
+        }
 
         return movimientoRepository.findByUsuarioResponsableId(usuarioId)
                 .stream()
@@ -384,8 +407,15 @@ public class MovimientoInventarioServiceImpl
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<MovimientoInventarioDtoResponse> listarPorTipo(
             TipoMovimiento tipo) {
+
+        if (tipo == null) {
+            throw new BusinessRuleException(
+                    "El tipo de movimiento es obligatorio"
+            );
+        }
 
         return movimientoRepository.findByTipoMovimiento(tipo)
                 .stream()

@@ -1,15 +1,16 @@
+
 package com.proyecto.LogiTrack.service.impl;
 
 import com.proyecto.LogiTrack.dto.request.MarcaDtoRequest;
 import com.proyecto.LogiTrack.dto.response.MarcaDtoResponse;
+import com.proyecto.LogiTrack.exception.BusinessRuleException;
+import com.proyecto.LogiTrack.exception.ResourceNotFoundException;
 import com.proyecto.LogiTrack.mapper.MarcaMapper;
 import com.proyecto.LogiTrack.model.Marca;
 import com.proyecto.LogiTrack.repository.MarcaRepository;
 import com.proyecto.LogiTrack.repository.ProductoRepository;
 import com.proyecto.LogiTrack.service.MarcaService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +29,9 @@ public class MarcaServiceImpl implements MarcaService {
     public MarcaDtoResponse guardar(MarcaDtoRequest dto) {
 
         if (marcaRepository.existsByNombre(dto.nombre())) {
-            throw new RuntimeException("Ya existe una marca con ese nombre");
+            throw new BusinessRuleException(
+                    "Ya existe una marca con ese nombre"
+            );
         }
 
         Marca marca = marcaMapper.dtoToEntity(dto);
@@ -42,10 +45,14 @@ public class MarcaServiceImpl implements MarcaService {
     public MarcaDtoResponse actualizar(MarcaDtoRequest dto, Integer id) {
 
         Marca marca = marcaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Marca no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la marca con ID: " + id
+                ));
 
         if (marcaRepository.existsByNombreAndIdNot(dto.nombre(), id)) {
-            throw new RuntimeException("Ya existe otra marca con ese nombre");
+            throw new BusinessRuleException(
+                    "Ya existe otra marca con ese nombre"
+            );
         }
 
         marcaMapper.updateEntityFromDto(marca, dto);
@@ -59,10 +66,12 @@ public class MarcaServiceImpl implements MarcaService {
     public void eliminar(Integer id) {
 
         Marca marca = marcaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Marca no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la marca con ID: " + id
+                ));
 
         if (productoRepository.existsByMarcaId(id)) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "No se puede eliminar la marca porque tiene productos asociados"
             );
         }
@@ -84,7 +93,10 @@ public class MarcaServiceImpl implements MarcaService {
     @Transactional(readOnly = true)
     public MarcaDtoResponse buscarId(Integer id) {
 
-        Marca marca = marcaRepository.findById(id).orElseThrow(() -> new RuntimeException("Marca no encontrada"));
+        Marca marca = marcaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la marca con ID: " + id
+                ));
 
         return marcaMapper.entityToDto(marca);
     }

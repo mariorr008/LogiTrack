@@ -1,24 +1,21 @@
+
 package com.proyecto.LogiTrack.service.impl;
 
 import com.proyecto.LogiTrack.dto.request.ProductoDtoRequest;
 import com.proyecto.LogiTrack.dto.response.ProductoDtoResponse;
-
+import com.proyecto.LogiTrack.exception.BusinessRuleException;
+import com.proyecto.LogiTrack.exception.ResourceNotFoundException;
 import com.proyecto.LogiTrack.mapper.ProductoMapper;
-
 import com.proyecto.LogiTrack.model.Producto;
 import com.proyecto.LogiTrack.model.Marca;
 import com.proyecto.LogiTrack.model.CategoriaProducto;
-
 import com.proyecto.LogiTrack.repository.ProductoRepository;
 import com.proyecto.LogiTrack.repository.MarcaRepository;
 import com.proyecto.LogiTrack.repository.CategoriaProductoRepository;
 import com.proyecto.LogiTrack.repository.InventarioBodegaRepository;
 import com.proyecto.LogiTrack.repository.DetalleMovimientoRepository;
-
 import com.proyecto.LogiTrack.service.ProductoService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,14 +37,20 @@ public class ProductoServiceImpl implements ProductoService {
     public ProductoDtoResponse guardar(ProductoDtoRequest dto) {
 
         if (productoRepository.existsByNombre(dto.nombre())) {
-            throw new RuntimeException("Ya existe un producto con ese nombre");
+            throw new BusinessRuleException(
+                    "Ya existe un producto con ese nombre"
+            );
         }
 
         Marca marca = marcaRepository.findById(dto.marcaId())
-                .orElseThrow(() -> new RuntimeException("Marca no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la marca con ID: " + dto.marcaId()
+                ));
 
         CategoriaProducto categoria = categoriaRepository.findById(dto.categoriaId())
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la categoría con ID: " + dto.categoriaId()
+                ));
 
         Producto producto = productoMapper.dtoToEntity(dto);
 
@@ -63,17 +66,25 @@ public class ProductoServiceImpl implements ProductoService {
     public ProductoDtoResponse actualizar(ProductoDtoRequest dto, Integer id) {
 
         Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró el producto con ID: " + id
+                ));
 
         if (productoRepository.existsByNombreAndIdNot(dto.nombre(), id)) {
-            throw new RuntimeException("Ya existe otro producto con ese nombre");
+            throw new BusinessRuleException(
+                    "Ya existe otro producto con ese nombre"
+            );
         }
 
         Marca marca = marcaRepository.findById(dto.marcaId())
-                .orElseThrow(() -> new RuntimeException("Marca no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la marca con ID: " + dto.marcaId()
+                ));
 
         CategoriaProducto categoria = categoriaRepository.findById(dto.categoriaId())
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró la categoría con ID: " + dto.categoriaId()
+                ));
 
         productoMapper.updateEntityFromDto(producto, dto);
 
@@ -89,16 +100,18 @@ public class ProductoServiceImpl implements ProductoService {
     public void eliminar(Integer id) {
 
         Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró el producto con ID: " + id
+                ));
 
         if (inventarioRepository.existsByProductoId(id)) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "No se puede eliminar el producto porque tiene registros de inventario"
             );
         }
 
         if (detalleMovimientoRepository.existsByProductoId(id)) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "No se puede eliminar el producto porque tiene movimientos registrados"
             );
         }
@@ -121,7 +134,9 @@ public class ProductoServiceImpl implements ProductoService {
     public ProductoDtoResponse buscarId(Integer id) {
 
         Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró el producto con ID: " + id
+                ));
 
         return productoMapper.entityToDto(producto);
     }
