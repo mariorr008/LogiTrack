@@ -89,6 +89,10 @@ public class SecurityConfig {
                         .requestMatchers("/reportes/**")
                         .hasRole("ADMIN")
 
+                        // AUDITORÍAS: solo ADMIN puede consultar los registros
+                        .requestMatchers("/auditorias/**")
+                        .hasRole("ADMIN")
+
                         // Cualquier otra ruta requiere autenticación
                         .anyRequest().authenticated()
                 )
