@@ -8,6 +8,7 @@ import com.proyecto.LogiTrack.exception.ResourceNotFoundException;
 import com.proyecto.LogiTrack.mapper.MovimientoInventarioMapper;
 import com.proyecto.LogiTrack.model.*;
 import com.proyecto.LogiTrack.repository.*;
+import com.proyecto.LogiTrack.service.AuditoriaService;
 import com.proyecto.LogiTrack.service.MovimientoInventarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,7 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -32,6 +35,7 @@ public class MovimientoInventarioServiceImpl
     private final ProductoRepository productoRepository;
     private final PersonaRepository personaRepository;
     private final MovimientoInventarioMapper mapper;
+    private final AuditoriaService auditoriaService;
 
     @Override
     public MovimientoInventarioDtoResponse registrar(
@@ -224,7 +228,62 @@ public class MovimientoInventarioServiceImpl
             detallesGuardados.add(detalleRepository.save(detalle));
         }
 
+        // Registrar automáticamente la operación en auditoría.
+        auditoriaService.registrar(
+                TipoOperacion.INSERT,
+                "MOVIMIENTO_INVENTARIO",
+                movimiento.getId(),
+                null,
+                obtenerDatosMovimiento(movimiento, detallesGuardados)
+        );
+
         return mapper.entityToDto(movimiento, detallesGuardados);
+    }
+
+    private Map<String, Object> obtenerDatosMovimiento(
+            MovimientoInventario movimiento,
+            List<DetalleMovimiento> detalles) {
+
+        Map<String, Object> datos = new LinkedHashMap<>();
+
+        datos.put("id", movimiento.getId());
+        datos.put("fecha", movimiento.getFecha().toString());
+        datos.put("tipoMovimiento", movimiento.getTipoMovimiento());
+
+        datos.put(
+                "usuarioResponsableId",
+                movimiento.getUsuarioResponsable().getId()
+        );
+
+        datos.put(
+                "bodegaOrigenId",
+                movimiento.getBodegaOrigen() != null
+                        ? movimiento.getBodegaOrigen().getId()
+                        : null
+        );
+
+        datos.put(
+                "bodegaDestinoId",
+                movimiento.getBodegaDestino() != null
+                        ? movimiento.getBodegaDestino().getId()
+                        : null
+        );
+
+        List<Map<String, Object>> detallesDatos = new ArrayList<>();
+
+        for (DetalleMovimiento detalle : detalles) {
+
+            Map<String, Object> item = new LinkedHashMap<>();
+
+            item.put("productoId", detalle.getProducto().getId());
+            item.put("cantidad", detalle.getCantidad());
+
+            detallesDatos.add(item);
+        }
+
+        datos.put("detalles", detallesDatos);
+
+        return datos;
     }
 
     private void validarDetalles(MovimientoInventarioDtoRequest dto) {

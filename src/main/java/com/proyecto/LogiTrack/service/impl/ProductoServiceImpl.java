@@ -6,20 +6,17 @@ import com.proyecto.LogiTrack.dto.response.ProductoDtoResponse;
 import com.proyecto.LogiTrack.exception.BusinessRuleException;
 import com.proyecto.LogiTrack.exception.ResourceNotFoundException;
 import com.proyecto.LogiTrack.mapper.ProductoMapper;
-import com.proyecto.LogiTrack.model.Producto;
-import com.proyecto.LogiTrack.model.Marca;
-import com.proyecto.LogiTrack.model.CategoriaProducto;
-import com.proyecto.LogiTrack.repository.ProductoRepository;
-import com.proyecto.LogiTrack.repository.MarcaRepository;
-import com.proyecto.LogiTrack.repository.CategoriaProductoRepository;
-import com.proyecto.LogiTrack.repository.InventarioBodegaRepository;
-import com.proyecto.LogiTrack.repository.DetalleMovimientoRepository;
+import com.proyecto.LogiTrack.model.*;
+import com.proyecto.LogiTrack.repository.*;
+import com.proyecto.LogiTrack.service.AuditoriaService;
 import com.proyecto.LogiTrack.service.ProductoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +29,7 @@ public class ProductoServiceImpl implements ProductoService {
     private final InventarioBodegaRepository inventarioRepository;
     private final DetalleMovimientoRepository detalleMovimientoRepository;
     private final ProductoMapper productoMapper;
+    private final AuditoriaService auditoriaService;
 
     @Override
     public ProductoDtoResponse guardar(ProductoDtoRequest dto) {
@@ -59,6 +57,14 @@ public class ProductoServiceImpl implements ProductoService {
 
         Producto guardado = productoRepository.save(producto);
 
+        auditoriaService.registrar(
+                TipoOperacion.INSERT,
+                "PRODUCTO",
+                guardado.getId(),
+                null,
+                obtenerDatosProducto(guardado)
+        );
+
         return productoMapper.entityToDto(guardado);
     }
 
@@ -69,6 +75,9 @@ public class ProductoServiceImpl implements ProductoService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No se encontró el producto con ID: " + id
                 ));
+
+        Map<String, Object> valoresAnteriores =
+                obtenerDatosProducto(producto);
 
         if (productoRepository.existsByNombreAndIdNot(dto.nombre(), id)) {
             throw new BusinessRuleException(
@@ -93,6 +102,14 @@ public class ProductoServiceImpl implements ProductoService {
 
         Producto actualizado = productoRepository.save(producto);
 
+        auditoriaService.registrar(
+                TipoOperacion.UPDATE,
+                "PRODUCTO",
+                actualizado.getId(),
+                valoresAnteriores,
+                obtenerDatosProducto(actualizado)
+        );
+
         return productoMapper.entityToDto(actualizado);
     }
 
@@ -116,7 +133,31 @@ public class ProductoServiceImpl implements ProductoService {
             );
         }
 
+        Map<String, Object> valoresAnteriores =
+                obtenerDatosProducto(producto);
+
         productoRepository.delete(producto);
+
+        auditoriaService.registrar(
+                TipoOperacion.DELETE,
+                "PRODUCTO",
+                id,
+                valoresAnteriores,
+                null
+        );
+    }
+
+    private Map<String, Object> obtenerDatosProducto(Producto producto) {
+
+        Map<String, Object> datos = new LinkedHashMap<>();
+
+        datos.put("id", producto.getId());
+        datos.put("nombre", producto.getNombre());
+        datos.put("precio", producto.getPrecio());
+        datos.put("marcaId", producto.getMarca().getId());
+        datos.put("categoriaId", producto.getCategoria().getId());
+
+        return datos;
     }
 
     @Override

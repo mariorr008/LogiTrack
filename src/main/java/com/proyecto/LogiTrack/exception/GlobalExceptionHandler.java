@@ -8,6 +8,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -31,6 +32,18 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(status).body(error);
+    }
+
+    // Credenciales incorrectas o cuenta no activa: 401
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ErrorResponse> manejarCredenciales(
+            BadCredentialsException ex,
+            HttpServletRequest request) {
+
+        return crearRespuesta(
+                HttpStatus.UNAUTHORIZED,
+                "Correo o contraseña incorrectos",
+                request);
     }
 
     // Recurso no encontrado: 404

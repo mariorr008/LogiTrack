@@ -6,20 +6,17 @@ import com.proyecto.LogiTrack.dto.response.BodegaDtoResponse;
 import com.proyecto.LogiTrack.exception.BusinessRuleException;
 import com.proyecto.LogiTrack.exception.ResourceNotFoundException;
 import com.proyecto.LogiTrack.mapper.BodegaMapper;
-import com.proyecto.LogiTrack.model.Bodega;
-import com.proyecto.LogiTrack.model.Ciudad;
-import com.proyecto.LogiTrack.model.Encargado;
-import com.proyecto.LogiTrack.repository.BodegaRepository;
-import com.proyecto.LogiTrack.repository.CiudadRepository;
-import com.proyecto.LogiTrack.repository.EncargadoRepository;
-import com.proyecto.LogiTrack.repository.InventarioBodegaRepository;
-import com.proyecto.LogiTrack.repository.MovimientoInventarioRepository;
+import com.proyecto.LogiTrack.model.*;
+import com.proyecto.LogiTrack.repository.*;
+import com.proyecto.LogiTrack.service.AuditoriaService;
 import com.proyecto.LogiTrack.service.BodegaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +29,7 @@ public class BodegaServiceImpl implements BodegaService {
     private final InventarioBodegaRepository inventarioRepository;
     private final MovimientoInventarioRepository movimientoRepository;
     private final BodegaMapper bodegaMapper;
+    private final AuditoriaService auditoriaService;
 
     @Override
     public BodegaDtoResponse guardar(BodegaDtoRequest dto) {
@@ -66,7 +64,17 @@ public class BodegaServiceImpl implements BodegaService {
             bodega.setEncargado(encargado);
         }
 
-        return bodegaMapper.entityToDto(bodegaRepository.save(bodega));
+        Bodega guardada = bodegaRepository.save(bodega);
+
+        auditoriaService.registrar(
+                TipoOperacion.INSERT,
+                "BODEGA",
+                guardada.getId(),
+                null,
+                obtenerDatosBodega(guardada)
+        );
+
+        return bodegaMapper.entityToDto(guardada);
     }
 
     @Override
@@ -76,6 +84,8 @@ public class BodegaServiceImpl implements BodegaService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No se encontró la bodega con ID: " + id
                 ));
+
+        Map<String, Object> valoresAnteriores = obtenerDatosBodega(bodega);
 
         if (bodegaRepository.existsByNombreAndIdNot(dto.nombre(), id)) {
             throw new BusinessRuleException(
@@ -120,7 +130,17 @@ public class BodegaServiceImpl implements BodegaService {
             bodega.setEncargado(encargado);
         }
 
-        return bodegaMapper.entityToDto(bodegaRepository.save(bodega));
+        Bodega actualizada = bodegaRepository.save(bodega);
+
+        auditoriaService.registrar(
+                TipoOperacion.UPDATE,
+                "BODEGA",
+                actualizada.getId(),
+                valoresAnteriores,
+                obtenerDatosBodega(actualizada)
+        );
+
+        return bodegaMapper.entityToDto(actualizada);
     }
 
     @Override
@@ -144,7 +164,36 @@ public class BodegaServiceImpl implements BodegaService {
             );
         }
 
+        Map<String, Object> valoresAnteriores = obtenerDatosBodega(bodega);
+
         bodegaRepository.delete(bodega);
+
+        auditoriaService.registrar(
+                TipoOperacion.DELETE,
+                "BODEGA",
+                id,
+                valoresAnteriores,
+                null
+        );
+    }
+
+    private Map<String, Object> obtenerDatosBodega(Bodega bodega) {
+
+        Map<String, Object> datos = new LinkedHashMap<>();
+
+        datos.put("id", bodega.getId());
+        datos.put("nombre", bodega.getNombre());
+        datos.put("direccion", bodega.getDireccion());
+        datos.put("capacidad", bodega.getCapacidad());
+        datos.put("ciudadId", bodega.getCiudad().getId());
+        datos.put(
+                "encargadoId",
+                bodega.getEncargado() != null
+                        ? bodega.getEncargado().getId()
+                        : null
+        );
+
+        return datos;
     }
 
     @Override
