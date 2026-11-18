@@ -35,6 +35,13 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        // Documentación OpenAPI/Swagger; las rutas de negocio conservan sus permisos.
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+
                         // Endpoints públicos
                         .requestMatchers("/auth/login", "/auth/register").permitAll()
 
