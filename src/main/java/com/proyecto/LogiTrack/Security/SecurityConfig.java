@@ -93,6 +93,11 @@ public class SecurityConfig {
                         .requestMatchers("/auditorias/**")
                         .hasRole("ADMIN")
 
+                        .requestMatchers(
+                                "/auth/pendientes",
+                                "/auth/*/activar"
+                        ).hasRole("ADMIN")
+
                         // Cualquier otra ruta requiere autenticación
                         .anyRequest().authenticated()
                 )

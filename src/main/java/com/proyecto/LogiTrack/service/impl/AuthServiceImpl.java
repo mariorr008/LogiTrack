@@ -3,6 +3,7 @@ package com.proyecto.LogiTrack.service.impl;
 
 import com.proyecto.LogiTrack.dto.request.LoginRequest;
 import com.proyecto.LogiTrack.dto.request.RegistroRequest;
+import com.proyecto.LogiTrack.dto.response.EmpleadoPendienteDtoResponse;
 import com.proyecto.LogiTrack.dto.response.LoginResponse;
 import com.proyecto.LogiTrack.model.Admin;
 import com.proyecto.LogiTrack.model.Encargado;
@@ -18,6 +19,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -99,5 +102,44 @@ public class AuthServiceImpl implements AuthService {
         encargado.setDebeCambiarPassword(false);
 
         encargadoRepository.save(encargado);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EmpleadoPendienteDtoResponse> listarEmpleadosPendientes() {
+
+        return encargadoRepository.findAll().stream()
+                .filter(e -> e.getPersona().getEstado() == EstadoPersona.PENDIENTE)
+                .map(e -> new EmpleadoPendienteDtoResponse(
+                        e.getPersona().getId(),
+                        e.getPersona().getNombre(),
+                        e.getPersona().getCorreo(),
+                        e.getPersona().getTelefono(),
+                        e.getPersona().getCedula(),
+                        e.getPersona().getEstado().name()
+                ))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void activarEmpleado(Integer id) {
+
+        Encargado encargado = encargadoRepository.findById(id)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Empleado no encontrado")
+                );
+
+        Persona persona = encargado.getPersona();
+
+        if (persona.getEstado() != EstadoPersona.PENDIENTE) {
+            throw new IllegalArgumentException(
+                    "El empleado no tiene una cuenta pendiente"
+            );
+        }
+
+        persona.setEstado(EstadoPersona.ACTIVO);
+
+        personaRepository.save(persona);
     }
 }

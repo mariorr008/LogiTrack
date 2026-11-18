@@ -1,9 +1,11 @@
+
 package com.proyecto.LogiTrack.controller;
 
 import com.proyecto.LogiTrack.dto.request.LoginRequest;
 import com.proyecto.LogiTrack.dto.request.RegistroRequest;
 import com.proyecto.LogiTrack.dto.response.LoginResponse;
 import com.proyecto.LogiTrack.dto.response.RegistroResponse;
+import com.proyecto.LogiTrack.dto.response.EmpleadoPendienteDtoResponse;
 import com.proyecto.LogiTrack.exception.ErrorResponse;
 import com.proyecto.LogiTrack.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/auth")
@@ -40,8 +44,7 @@ public class AuthController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Inicio de sesión exitoso.",
-                    content = @Content(schema = @Schema(implementation = LoginResponse.class),
-                            examples = @ExampleObject(value = "{\"token\":\"eyJhbGciOiJIUzI1NiJ9...\"}"))),
+                    content = @Content(schema = @Schema(implementation = LoginResponse.class))),
             @ApiResponse(responseCode = "400", description = "Solicitud inválida.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "Credenciales incorrectas o cuenta no activa.",
@@ -68,8 +71,7 @@ public class AuthController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Empleado registrado.",
-                    content = @Content(schema = @Schema(implementation = RegistroResponse.class),
-                            examples = @ExampleObject(value = "{\"mensaje\":\"Empleado registrado correctamente. La cuenta está pendiente de activación.\"}"))),
+                    content = @Content(schema = @Schema(implementation = RegistroResponse.class))),
             @ApiResponse(responseCode = "400", description = "Solicitud inválida o regla de negocio incumplida.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "409", description = "Conflicto con datos existentes.",
@@ -81,9 +83,32 @@ public class AuthController {
             @Valid @org.springframework.web.bind.annotation.RequestBody RegistroRequest request) {
 
         authService.registrarEmpleado(request);
+
         RegistroResponse response = new RegistroResponse(
                 "Empleado registrado correctamente. La cuenta está pendiente de activación."
         );
+
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // Listar empleados pendientes de activación
+    @GetMapping("/pendientes")
+    @Operation(summary = "Listar empleados pendientes", description = "Obtiene los empleados que esperan activación.")
+    public ResponseEntity<List<EmpleadoPendienteDtoResponse>> listarEmpleadosPendientes() {
+
+        List<EmpleadoPendienteDtoResponse> empleados =
+                authService.listarEmpleadosPendientes();
+
+        return ResponseEntity.ok(empleados);
+    }
+
+    // Activar un empleado
+    @PutMapping("/{id}/activar")
+    @Operation(summary = "Activar empleado", description = "Activa la cuenta de un empleado pendiente.")
+    public ResponseEntity<Void> activarEmpleado(@PathVariable Integer id) {
+
+        authService.activarEmpleado(id);
+
+        return ResponseEntity.ok().build();
     }
 }
