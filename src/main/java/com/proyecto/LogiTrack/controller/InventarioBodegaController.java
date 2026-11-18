@@ -55,4 +55,11 @@ public class InventarioBodegaController {
         return ResponseEntity.ok(
                 inventarioService.listarPorProducto(productoId));
     }
+
+    // Consultar productos con menos de 10 unidades.
+    @GetMapping("/stock-bajo")
+    public ResponseEntity<List<InventarioBodegaDtoResponse>> listarStockBajo() {
+
+        return ResponseEntity.ok(inventarioService.listarStockBajo());
+    }
 }

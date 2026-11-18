@@ -123,4 +123,14 @@ public class InventarioBodegaServiceImpl implements InventarioBodegaService {
                 .map(inventarioMapper::entityToDto)
                 .toList();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<InventarioBodegaDtoResponse> listarStockBajo() {
+
+        return inventarioRepository.buscarStockBajo()
+                .stream()
+                .map(inventarioMapper::entityToDto)
+                .toList();
+    }
 }

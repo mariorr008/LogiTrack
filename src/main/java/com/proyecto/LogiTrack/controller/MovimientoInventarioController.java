@@ -7,10 +7,12 @@ import com.proyecto.LogiTrack.model.TipoMovimiento;
 import com.proyecto.LogiTrack.service.MovimientoInventarioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -56,6 +58,22 @@ public class MovimientoInventarioController {
 
         return ResponseEntity.ok(
                 movimientoService.listarPorTipo(tipo)
+        );
+    }
+
+    // Consultar movimientos por rango de fechas.
+    @GetMapping("/fecha")
+    public ResponseEntity<List<MovimientoInventarioDtoResponse>> listarPorFechas(
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime inicio,
+
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime fin) {
+
+        return ResponseEntity.ok(
+                movimientoService.listarPorFechas(inicio, fin)
         );
     }
 }

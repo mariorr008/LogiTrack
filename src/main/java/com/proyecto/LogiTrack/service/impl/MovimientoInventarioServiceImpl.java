@@ -484,4 +484,34 @@ public class MovimientoInventarioServiceImpl
                 ))
                 .toList();
     }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MovimientoInventarioDtoResponse> listarPorFechas(
+            LocalDateTime fechaInicio,
+            LocalDateTime fechaFin) {
+
+        if (fechaInicio == null || fechaFin == null) {
+            throw new BusinessRuleException(
+                    "Las fechas de inicio y fin son obligatorias"
+            );
+        }
+
+        if (fechaInicio.isAfter(fechaFin)) {
+            throw new BusinessRuleException(
+                    "La fecha de inicio no puede ser posterior a la fecha final"
+            );
+        }
+
+        return movimientoRepository
+                .findByFechaBetweenOrderByFechaDesc(fechaInicio, fechaFin)
+                .stream()
+                .map(movimiento -> mapper.entityToDto(
+                        movimiento,
+                        detalleRepository.findByMovimientoId(movimiento.getId())
+                ))
+                .toList();
+    }
+
 }

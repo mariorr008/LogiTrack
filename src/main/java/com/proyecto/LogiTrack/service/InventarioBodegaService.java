@@ -16,4 +16,6 @@ public interface InventarioBodegaService {
     List<InventarioBodegaDtoResponse> listarPorBodega(Integer bodegaId);
 
     List<InventarioBodegaDtoResponse> listarPorProducto(Integer productoId);
+
+    List<InventarioBodegaDtoResponse> listarStockBajo();
 }

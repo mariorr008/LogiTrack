@@ -79,6 +79,9 @@ public class SecurityConfig {
                         .requestMatchers("/categorias/**")
                         .hasRole("ADMIN")
 
+                        .requestMatchers("/reportes/**")
+                        .hasRole("ADMIN")
+
                         // Cualquier otra ruta requiere autenticación
                         .anyRequest().authenticated()
                 )
