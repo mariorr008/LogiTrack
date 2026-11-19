@@ -363,6 +363,6 @@ INSERT INTO admin (
     debe_cambiar_password
 ) VALUES (
     100001,
-    'REEMPLAZAR_POR_HASH_BCRYPT_VALIDO',
+    'Admin123*',
     TRUE
 );
